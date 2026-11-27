@@ -1,0 +1,38 @@
+name: Aritzia monitor
+on:
+  schedule:
+    - cron: '3-58/5 * * * *'
+  workflow_dispatch:
+    inputs:
+      test_push:
+        type: boolean
+        default: false
+        description: Test phone notification only
+permissions:
+  contents: write
+concurrency:
+  group: aritzia-monitor
+  cancel-in-progress: false
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install playwright
+      - run: python -m playwright install --with-deps chromium
+      - run: python monitor.py
+        env:
+          BARK_KEY: ${{ secrets.BARK_KEY }}
+          TEST_PUSH: ${{ inputs.test_push }}
+      - if: always()
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if [ -f state.json ]; then
+            git add state.json
+            git diff --cached --quiet || (git commit -m 'Update stock state' && git push)
+          fi
