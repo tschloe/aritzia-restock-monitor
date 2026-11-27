@@ -19,7 +19,12 @@ def main():
         page=browser.new_page(locale='en-US')
         for size in SIZES:
             response=page.goto(URL,wait_until='domcontentloaded',timeout=45000)
-            if response is None or response.status>=400: raise RuntimeError('Page unavailable; stop and review access')
+            print("HTTP status:", response.status if response else "No response")
+            print("Final URL:", page.url)
+            print("Page title:", page.title())
+            if response is None or response.status >= 400:
+                print("Page content:", page.locator("body").inner_text()[:1000])
+                raise RuntimeError("Page unavailable; stop and review access")
             page.wait_for_timeout(5000)
             if '/intl/' not in page.url or 'color=29661' not in page.url: raise RuntimeError('Region or color not confirmed')
             if not re.search(r'Mochi Pink',page.locator('body').inner_text(),re.I): raise RuntimeError('Target color not confirmed')
